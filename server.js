@@ -5,8 +5,6 @@ var app = express();
 
 app.set('view engine', 'html');
 app.set('layout', 'layout');
-//app.set 'partials', foo: 'foo'   # define partials available to all pages
-//app.enable 'view cache'
 app.engine('html', require('hogan-express'))
 
 var Socialcast = require('./socialcast');
@@ -35,6 +33,12 @@ app.get('/message/:id', function(req, res){
 
 app.get('/ansatt/:name', function(req, res){
   Ansattliste.getByName(req.params.name, function(data){
+    res.json(data);
+  });
+});
+
+app.get('/ansatt/alternative/:name', function(req, res){
+  Ansattliste.fuzzySearch(req.params.name, function(data){
     res.json(data);
   });
 });
