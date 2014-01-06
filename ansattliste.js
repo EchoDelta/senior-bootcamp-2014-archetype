@@ -48,19 +48,21 @@ exports.getAll = function(callback){
 exports.fuzzySearch = function(name, ansatte){
   var splitName = name.split(" ");
   var match = false;
-  var personId = -1;
-  ansatte.forEach(function(person) {
+  var personen = {};
+  for(var key in ansatte){
+    var person = ansatte[key];
     var nameArray = person.Name.split(" ");
     var matchCounter = 0;
     splitName.forEach(function(namePart){
-      if(nameArray.indexOf(namePart) !== -1 ){
+      if(nameArray.indexOf(namePart) !== -1){
         matchCounter++;
       }
     });
 
     if(matchCounter >= 2) {
-      personId = person.Id;
+      personen = person;
     }
-  });
-  return personId;
+  }
+  
+  return personen;
 }
