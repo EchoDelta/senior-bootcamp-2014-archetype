@@ -68,7 +68,7 @@ app.get('/message/:id', function(req, res){
         } else {
           var ansattid = Ansattliste.fuzzySearch(name, ansatte);
           if(ansattid != -1){
-            Ansattliste.getById(id, function(ansatt) {
+            Ansattliste.getById(ansattid, function(ansatt) {
               if(ansatt.length>0){
                 message.user.senioritet = ansatt[0].Seniority;
                 message.user.avdeling = ansatt[0].Department;
