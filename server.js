@@ -3,25 +3,24 @@ var express = require('express');
 var request = require('request');
 var app = express();
 
+var Socialcast = require('./socialcast');
 
-var demo_url = "https://api.github.com/users/bekkopen/repos";
-app.get('/', function(req, res) {
-  request.get({
-    url: demo_url,
-    json: true,
-    headers: {
-            'User-Agent': 'request'
-                }
-    }, function(error, response, body) {
-      if(error) {
-        console.log("an error has occured. keep calm and carry on.");
-      }
-      res.json(body);
-    });
+var socialcasturl = process.env.URL;
+var socialcastusername = process.env.USERNAME;
+var socialcastpassword = process.env.PASSWORD;
 
-
+app.get('/messages', function(req, res){
+  Socialcast.getMessages(function(data){
+    res.json(data);
+  });
 });
 
+
+app.get('/message/:id', function(req, res){
+  Socialcast.getMessage(req.params.id, function(data){
+    res.json(data);
+  });
+});
 
 // if on heroku use heroku port.
 var port = process.env.PORT || 1339;
