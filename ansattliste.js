@@ -41,19 +41,27 @@ exports.fuzzySearch = function(name, callback){
     if(error) {
       console.log("an error has occured. keep calm and carry on.");
     }
-
-    var nameLength = name.length;
-    var nameStart = name.substring(0, 3);
-    var nameEnd = name.substring(nameLength-3, nameLength);
-    var personNameLength;
+    var splitName = name.split(" ");
     var personId;
-
+    var match = false;
     body.forEach(function(person) {
-      personNameLength = person.Name.length;
-      if(person.Name.substring(0, 3).toLowerCase() === nameStart && person.Name.substring(personNameLength-3, personNameLength).toLowerCase() === nameEnd) {
+      var nameArray = person.Name.split(" ");
+      var matchCounter = 0;
+      splitName.forEach(function(namePart){
+        if(nameArray.indexOf(namePart) !== -1 ){
+          matchCounter++;
+        }
+      });
+
+      if(matchCounter >= 2) {
         personId = person.Id;
-        return callback(personId);;
+        callback(personId);
+        match = true;
+        return;
       }
-    });    
+    });
+    if(!match){
+      callback(-1);  
+    } 
   });
 }

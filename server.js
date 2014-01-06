@@ -28,8 +28,25 @@ app.get('/messages', function(req, res){
         if(ansatt){
           message.user.senioritet = ansatt.Seniority;
           message.user.avdeling = ansatt.Department;
+          done();
+        } else {
+          Ansattliste.fuzzySearch(name, function(id) {
+            if(id!=-1){
+              Ansattliste.getById(id, function(ansatt) {
+                console.log(ansatt);
+                if(ansatt.length>0){
+                  message.user.senioritet = ansatt[0].Seniority;
+                  message.user.avdeling = ansatt[0].Department;
+                }
+                done();
+              });              
+            }
+            else {
+              done();
+            }
+
+          });
         }
-        done();
       });
     }, function(error) {
       if(error){
@@ -49,8 +66,23 @@ app.get('/message/:id', function(req, res){
         if(ansatt){
           message.user.senioritet = ansatt.Seniority;
           message.user.avdeling = ansatt.Department;
+          res.json(message);
+        } else {
+          Ansattliste.fuzzySearch(name, function(id) {
+            if(id!=-1){
+              Ansattliste.getById(id, function(ansatt) {
+                if(ansatt.length>0){
+                  message.user.senioritet = ansatt[0].Seniority;
+                  message.user.avdeling = ansatt[0].Department;
+                }
+                res.json(message);
+              });
+            }
+            else {
+              res.json(message);
+            }
+          });
         }
-        res.json(message);
       });
     }
   });
