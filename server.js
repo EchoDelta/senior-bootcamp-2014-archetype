@@ -42,8 +42,17 @@ app.get('/messages', function(req, res){
 
 
 app.get('/message/:id', function(req, res){
-  Socialcast.getMessage(req.params.id, function(data){
-    res.json(data);
+  Socialcast.getMessage(req.params.id, function(message){
+    if(message){
+      var name = message.user.name;
+      Ansattliste.getByName(name, function (ansatt) {
+        if(ansatt){
+          message.user.senioritet = ansatt.Seniority;
+          message.user.avdeling = ansatt.Department;
+        }
+        res.json(message);
+      });
+    }
   });
 });
 
