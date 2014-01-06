@@ -3,11 +3,21 @@ var express = require('express');
 var request = require('request');
 var app = express();
 
+app.set('view engine', 'html');
+app.set('layout', 'layout');
+//app.set 'partials', foo: 'foo'   # define partials available to all pages
+//app.enable 'view cache'
+app.engine('html', require('hogan-express'))
+
 var Socialcast = require('./socialcast');
 
 var socialcasturl = process.env.URL;
 var socialcastusername = process.env.USERNAME;
 var socialcastpassword = process.env.PASSWORD;
+
+app.get('/', function(req, res){
+  res.render('index', { title: 'Express' })
+});
 
 app.get('/messages', function(req, res){
   Socialcast.getMessages(function(data){
