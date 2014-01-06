@@ -10,6 +10,7 @@ app.set('layout', 'layout');
 app.engine('html', require('hogan-express'))
 
 var Socialcast = require('./socialcast');
+var Ansattliste = require('./ansattliste');
 
 var socialcasturl = process.env.URL;
 var socialcastusername = process.env.USERNAME;
@@ -28,6 +29,12 @@ app.get('/messages', function(req, res){
 
 app.get('/message/:id', function(req, res){
   Socialcast.getMessage(req.params.id, function(data){
+    res.json(data);
+  });
+});
+
+app.get('/ansatt/:name', function(req, res){
+  Ansattliste.getByName(req.params.name, function(data){
     res.json(data);
   });
 });
