@@ -1,6 +1,7 @@
 
 var express = require('express');
 var request = require('request');
+var async = require('async');
 var app = express();
 
 app.set('view engine', 'html');
@@ -21,8 +22,23 @@ app.get('/', function(req, res){
 });
 
 app.get('/messages', function(req, res){
-  Socialcast.getMessages(function(data){
-    res.json(data);
+  var newMessages = [];
+  Socialcast.getMessages(function(messages){
+    async.each(messages, function(message, done){
+      var name = message.user.name;
+      Ansattliste.getByName(name, function (ansatt) {
+        if(ansatt){
+          message.user.senioritet = ansatt.Seniority;
+          message.user.avdeling = ansatt.Department;
+        }
+        done();
+      });
+    }, function(error) {
+      if(error){
+        console.log("Oops");
+      }
+      res.json(messages);
+    })
   });
 });
 
