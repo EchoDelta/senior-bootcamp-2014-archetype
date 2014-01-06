@@ -1,4 +1,5 @@
 var request = require('request');
+var async = require('async');
 var url = process.env.URL;
 var username = process.env.USERNAME;
 var password = process.env.PASSWORD;
@@ -18,20 +19,39 @@ var requestOptions = function(path){
     }
 };
 
-exports.getMessages = function(callback){
-	request.get(requestOptions("api/messages/"), function(error, response, body) {
+var getLikes = function(id, callback){
+	request.get(requestOptions("api/messages/"+id+"/likes"), function(error, response, likes) {
 		if(error) {
 			console.log("an error has occured. keep calm and carry on.");
 		}
-		callback(body);
+		callback(likes);
+	});
+}
+
+exports.getMessages = function(callback){
+	request.get(requestOptions("api/messages/"), function(error, response, messages) {
+		if(error) {
+			console.log("an error has occured. keep calm and carry on.");
+		}
+		async.each(messages, function(message, done){
+			getLikes(message.id, function(likes){
+				message.likes = likes;
+				done();
+			});
+		}, function(){
+			callback(messages);
+		});
 	});
 };
 
 exports.getMessage = function(id, callback){
-	request.get(requestOptions("api/messages/"+id), function(error, response, body) {
+	request.get(requestOptions("api/messages/"+id), function(error, response, message) {
 		if(error) {
 			console.log("an error has occured. keep calm and carry on.");
 		}
-		callback(body);
+		getLikes(message.id, function(likes){
+			message.likes = likes;
+			callback(message);
+		});
 	});
 }
