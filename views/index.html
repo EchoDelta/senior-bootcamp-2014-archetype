@@ -1,1 +1,14 @@
-Dette er forsiden
+<div class="messages">
+	{{#messages}}
+	  	<div class="message">
+  			<h1>{{user.name}}</h1>
+  			<p>{{body}}</p>
+  			{{#comments}}
+				<div class="comments">
+					<h2>{{user.name}}</h2>
+					<p>{{text}}</p>
+				</div>
+			{{/comments}}
+	  	</div>
+	{{/messages}}
+</div>

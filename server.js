@@ -17,7 +17,39 @@ var socialcastpassword = process.env.PASSWORD;
 var ansatte = {};
 
 app.get('/', function(req, res){
-  res.render('index', { title: 'Express' })
+  var newMessages = [];
+  Socialcast.getMessages(function(messages) {
+    async.each(messages, function(message, done) {
+      var name = message.user.name;
+      Ansattliste.getByName(name, function (ansatt) {
+        if(ansatt){
+          message.user.senioritet = ansatt.Seniority;
+          message.user.avdeling = ansatt.Department;
+          done();
+        } else {
+          var ansattid = Ansattliste.fuzzySearch(name, ansatte);
+          if(ansattid != -1) {
+            Ansattliste.getById(ansattid, function(ansatt) {
+              if(ansatt.length>0){
+                message.user.senioritet = ansatt[0].Seniority;
+                message.user.avdeling = ansatt[0].Department;
+              }
+              done();
+            });              
+          }
+          else {
+            done();
+          }
+        }
+      });
+    }, function(error) {
+      if(error){
+        console.log("Oops");
+      }
+      //res.json(messages);
+      res.render('index', { messages: messages })
+    });
+  });
 });
 
 app.get('/messages', function(req, res){
