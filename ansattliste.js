@@ -36,32 +36,31 @@ exports.getById = function(id, callback){
   });
 };
 
-exports.fuzzySearch = function(name, callback){
+exports.getAll = function(callback){
   request.get(requestOptions("all"), function(error, response, body) {
     if(error) {
       console.log("an error has occured. keep calm and carry on.");
     }
-    var splitName = name.split(" ");
-    var personId;
-    var match = false;
-    body.forEach(function(person) {
-      var nameArray = person.Name.split(" ");
-      var matchCounter = 0;
-      splitName.forEach(function(namePart){
-        if(nameArray.indexOf(namePart) !== -1 ){
-          matchCounter++;
-        }
-      });
+    callback(body);
+  });
+};
 
-      if(matchCounter >= 2) {
-        personId = person.Id;
-        callback(personId);
-        match = true;
-        return;
+exports.fuzzySearch = function(name, ansatte){
+  var splitName = name.split(" ");
+  var match = false;
+  var personId = -1;
+  ansatte.forEach(function(person) {
+    var nameArray = person.Name.split(" ");
+    var matchCounter = 0;
+    splitName.forEach(function(namePart){
+      if(nameArray.indexOf(namePart) !== -1 ){
+        matchCounter++;
       }
     });
-    if(!match){
-      callback(-1);  
-    } 
+
+    if(matchCounter >= 2) {
+      personId = person.Id;
+    }
   });
+  return personId;
 }
