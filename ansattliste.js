@@ -27,6 +27,15 @@ exports.getByName = function(name, callback){
 	});
 };
 
+exports.getById = function(id, callback){
+  request.get(requestOptions("employee/"+id), function(error, response, body) {
+    if(error) {
+      console.log("an error has occured. keep calm and carry on.");
+    }
+    callback(body);
+  });
+};
+
 exports.fuzzySearch = function(name, callback){
   request.get(requestOptions("all"), function(error, response, body) {
     if(error) {

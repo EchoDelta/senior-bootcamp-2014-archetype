@@ -53,6 +53,12 @@ app.get('/ansatt/:name', function(req, res){
   });
 });
 
+app.get('/ansatt/id/:id', function(req, res){
+  Ansattliste.getById(req.params.id, function(data){
+    res.json(data);
+  });
+});
+
 app.get('/ansatt/alternative/:name', function(req, res){
   Ansattliste.fuzzySearch(req.params.name, function(data){
     res.json(data);
