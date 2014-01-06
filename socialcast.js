@@ -1,5 +1,6 @@
 var request = require('request');
 var async = require('async');
+var cache = require('memory-cache');
 var url = process.env.URL;
 var username = process.env.USERNAME;
 var password = process.env.PASSWORD;
@@ -20,12 +21,20 @@ var requestOptions = function(path){
 };
 
 var getLikes = function(id, callback){
-	request.get(requestOptions("api/messages/"+id+"/likes"), function(error, response, likes) {
-		if(error) {
-			console.log("an error has occured. keep calm and carry on.");
-		}
-		callback(likes);
-	});
+	var l = cache.get("likes"+id);
+	if(!l){
+		request.get(requestOptions("api/messages/"+id+"/likes"), function(error, response, likes) {
+			if(error) {
+				console.log("an error has occured. keep calm and carry on.");
+			}
+			cache.put("likes"+id, likes, 240000);
+			callback(likes);
+		});		
+	}
+	else{
+		callback(l);
+	}
+
 }
 
 exports.getMessages = function(callback){

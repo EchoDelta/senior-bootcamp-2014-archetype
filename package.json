@@ -20,6 +20,7 @@
     "express": "~3.4.7",
     "request": "~2.30.0",
     "async": "*",
-    "hogan-express": "*"
+    "hogan-express": "*",
+    "memory-cache": "*"
   }
 }
