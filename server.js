@@ -5,6 +5,7 @@ var cache = require('memory-cache');
 var app = express();
 var mongo = require('mongodb').MongoClient;
 
+app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'html');
 app.set('layout', 'layout');
 app.engine('html', require('hogan-express'));
@@ -103,7 +104,7 @@ app.post('/push', function(req, res){
   });
 });
 
-app.get('/seniority', function(req, res){
+app.get('/stats', function(req, res){
   getAllMessages(function(messages){
     var messageSeniorityMap = {};
     for(var i = 0; i<messages.length; i++){
@@ -151,11 +152,15 @@ app.get('/ansatt/alternative/:name', function(req, res){
   });
 });
 
+
+//Sette opp databasen
 mongo.connect(mongolaburl, function(error, db) {
     if (error) throw error;
     messageCollection = db.collection('messages');
 });
 
+
+//Hente ut alle ansatte og cache
 Ansattliste.getAll(function(result){
   var employees = {};
   async.each(result, function(employee, done){
