@@ -4,7 +4,6 @@ var async = require('async');
 var cache = require('memory-cache');
 var app = express();
 var mongo = require('mongodb').MongoClient;
-var quiche = require('quiche');
 
 app.set('view engine', 'html');
 app.set('layout', 'layout');
@@ -13,6 +12,7 @@ app.use(express.bodyParser());
 
 var Socialcast = require('./socialcast');
 var Ansattliste = require('./ansattliste');
+var Stats = require('./stats');
 
 var socialcasturl = process.env.URL;
 var socialcastusername = process.env.USERNAME;
@@ -22,47 +22,7 @@ var mongolaburl = process.env.MONGOLAB_URI;
 var ansatte = {};
 var messageCollection;
 
-app.get('/', function(req, res){
-  var newMessages = [];
-  Socialcast.getMessages(function(messages) {
-    async.each(messages, function(message, done) {
-      var name = message.user.name;
-      Ansattliste.getByName(name, function (ansatt) {
-        if(ansatt){
-          message.user.senioritet = ansatt.Seniority;
-          message.user.avdeling = ansatt.Department;
-          done();
-        } else {
-          var ansattid = Ansattliste.fuzzySearch(name, ansatte);
-          if(ansattid != -1) {
-            Ansattliste.getById(ansattid, function(ansatt) {
-              if(ansatt.length>0){
-                message.user.senioritet = ansatt[0].Seniority;
-                message.user.avdeling = ansatt[0].Department;
-              }
-              done();
-            });              
-          }
-          else {
-            done();
-          }
-        }
-      });
-    }, function(error) {
-      if(error){
-        console.log("Oops");
-      }
-      //res.json(messages);
-      res.render('index', { 
-        messages: messages,
-        title: "Flodes hjemmeside - 1994" 
-      });
-    });
-  });
-});
-
-app.get('/messages', function(req, res){
-  var newMessages = [];
+var getAllMessages = function(callback){
   Socialcast.getMessages(function(messages) {
     async.each(messages, function(message, done) {
       var name = message.user.name;
@@ -84,8 +44,20 @@ app.get('/messages', function(req, res){
       if(error){
         console.log("Oops");
       }
-      res.json(messages);
+      callback(messages);
     });
+  });
+}
+
+app.get('/', function(req, res){
+  getAllMessages(function(messages){
+    res.render('index', { messages: messages, title: "Flodes hjemmeside - 1994" });
+  });
+});
+
+app.get('/messages', function(req, res){
+  getAllMessages(function(messages){
+    res.json(messages);
   });
 });
 
@@ -131,6 +103,36 @@ app.post('/push', function(req, res){
   });
 });
 
+app.get('/seniority', function(req, res){
+  getAllMessages(function(messages){
+    var messageSeniorityMap = {};
+    for(var i = 0; i<messages.length; i++){
+      var seniority = messages[i].user.senioritet;
+
+      if(messageSeniorityMap[seniority]){
+        messageSeniorityMap[seniority]++;
+      }
+      else{
+        messageSeniorityMap[seniority] = 1;
+      }
+    }
+
+    var seniorityStatisticsArray = [];
+    for(var key in messageSeniorityMap){
+      var s = key;
+      var a = messageSeniorityMap[key];
+
+      seniorityStatisticsArray.push({senioritet: s, prosent: (a/messages.length*100), antall: a});
+    }
+
+    res.render('stats', {
+      stats: seniorityStatisticsArray,
+      pie: Stats.VisualizeThatShit(seniorityStatisticsArray),
+      title: "Sykt freshe stats" 
+    });
+  });
+});
+
 app.get('/ansatt/:name', function(req, res){
   Ansattliste.getByName(req.params.name, function(data){
     res.json(data);
@@ -146,25 +148,6 @@ app.get('/ansatt/id/:id', function(req, res){
 app.get('/ansatt/alternative/:name', function(req, res){
   Ansattliste.fuzzySearch(req.params.name, function(data){
     res.json(data);
-  });
-});
-
-app.get('/stats', function(req, res) {
-  var pie = new quiche('pie');
-  var stats = Socialcast.getPercentage();
-  var colors = ["F229BD", "7A29F2", "139C5C", "EBD913"];
-
-  for(var i = 0; i < stats.length; i++ ){
-    pie.addData(stats[i].prosentandel, stats[i].senioritet, colors[i]);
-  }
-  pie.setTransparentBackground();
-  pie.setWidth(600);
-  pie.setHeight(400);
-  
-  res.render('stats', {
-    stats: stats,
-    pie: pie.getUrl(true),
-    title: "Sykt freshe stats"
   });
 });
 
