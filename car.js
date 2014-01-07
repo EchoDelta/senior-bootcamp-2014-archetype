@@ -5,8 +5,8 @@ var url = process.env.URL_CARS;
 var requestOptions = function(path){
 	return {
       auth: {
-        'user': username,
-        'pass': password
+        'user': process.env.USERNAME,
+        'pass': process.env.PASSWORD
       },
       url: url + path,
       json: true,
@@ -17,51 +17,54 @@ var requestOptions = function(path){
     }
 };
 
-exports.getAllCarNumbers = function(employees, callback){
-	var peopleWithCars = [];
-	//console.log(employees);
-	async.each(employees, function(employee, done){
-		var cars = [];
-
-		for (var i = employee.cars.length - 1; i >= 0; i--) {
-			employee.cars[i]
-		};
-
-		var info = {
-			'name': person.Name
-		}
-
-
-		lookupCar(function(){
-
-			done();	
+exports.getCarsForEmployee = function(employee, callback){
+	var employeeCars = [];
+	if(employee.Cars){
+		var cars = employee.Cars.split(",");
+		async.each(cars, function(car, carDone){
+			lookupCar(car.trim(), function(carObject){
+				employeeCars.push(carObject);
+				carDone();
+			});
+		}, function(){
+			callback(employeeCars);
 		});
-	}, function(){
-		callback(peopleWithCars);
-	});
-
-	/*
-	for(var key in employees){
-		var person = employees[key];
-		if(person.Cars !== null) {
-			var info = {
-				'name': person.Name,
-				'cars': person.Cars.split(',')
-			}
-
-			peopleWithCars.push(info);
-			//var cars = 
-			//console.log(person.Cars);	
-		}
 	}
-	*/
+	else{
+		callback(employeeCars);
+	}
+}
+
+exports.getAllCarNumbers = function(employees, callback){
+	console.log(employees);
+	async.each(employees, function(employee, done){
+		var employeeCars = [];
+		if(employee.Cars){
+			var cars = employee.Cars.split(",");
+			async.each(cars, function(car, carDone){
+				lookupCar(car.trim(), function(carObject){
+					employeeCars.push(carObject);
+					carDone();
+				});
+			}, function(){
+				employee.Cars = employeeCars;
+				done();
+			});
+		}
+		else{
+			employee.Cars = employeeCars;
+			done();
+		}
+	}, function(){
+		callback(employees);
+	});
 };
 
 var lookupCar = function(registryNumber, callback){
-	request.get(requestOptions("api/"+registryNumber), function(error, response, body) {
+	request.get(requestOptions("api/"+registryNumber), function(error, response, car) {
     	if(error) {
       		console.log("an error has occured. keep calm and carry on.");
     	}
-    	callback(body);
+    	callback(car);
   	});
 };

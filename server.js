@@ -21,6 +21,7 @@ var mongolaburl = process.env.MONGOLAB_URI;
 
 var ansatte = {};
 var messageCollection;
+var carCollection;
 
 app.get('/', function(req, res){
   var newMessages = [];
@@ -116,6 +117,12 @@ app.get('/message/:id', function(req, res){
 });
 
 app.get('/cars', function(req, res){
+  carCollection.find().toArray(function(err, items) {
+    res.json(items);
+  });
+});
+
+app.get('/cars/:registry', function(req, res){
   var cars = CarService.getAllCarNumbers(ansatte);
   res.json(cars);
 });
@@ -156,6 +163,7 @@ app.get('/ansatt/alternative/:name', function(req, res){
 mongo.connect(mongolaburl, function(error, db) {
     if (error) throw error;
     messageCollection = db.collection('messages');
+    carCollection = db.collection('cars');
 });
 
 Ansattliste.getAll(function(result){
@@ -165,8 +173,31 @@ Ansattliste.getAll(function(result){
     Ansattliste.getByName(name, function (ansatt) {
       if(ansatt){
         employees[name] = ansatt;
+        CarService.getCarsForEmployee(ansatt, function(cars){
+          async.each(cars, function(car, carDone){
+            var carToSave = {};
+            car.forEach(function(entry) {
+              if (entry.name === 'Registreringsnummer') {
+                carToSave.id = entry.value;
+              } else if (entry.name === 'Merke og modell') {
+                carToSave.brand = entry.value;
+              } else if (entry.name === 'Drivstoff') {
+                carToSave.fuel = entry.value;
+              }
+              carToSave.owner = ansatt.Name;
+            });
+
+            carCollection.update({ id: carToSave.id }, carToSave, { upsert: true}, function(err, result) {
+              carDone();
+            });
+          }, function(){
+            done();
+          })
+        });
       }
-      done();
+      else{
+        done();  
+      }
     });
   },
   function(){
