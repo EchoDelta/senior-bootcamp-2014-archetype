@@ -27,19 +27,7 @@ var getAllMessages = function(callback){
   Socialcast.getMessages(function(messages) {
     async.each(messages, function(message, done) {
       var name = message.user.name;
-
-      if(ansatte[name]){
-        message.user.senioritet = ansatte[name].Seniority;
-        message.user.avdeling = ansatte[name].Department;  
-      }
-      else{
-        var ansatt = Ansattliste.fuzzySearch(name, ansatte);
-        if(ansatt){
-          message.user.senioritet = ansatt.Seniority;
-          message.user.avdeling = ansatt.Department;  
-        }
-      }
-
+      Ansattliste.SetPropertiesFromAnsattliste(ansatte, message, name);
       done();
     }, function(error) {
       if(error){
@@ -71,17 +59,7 @@ app.get('/message/:id', function(req, res){
       Socialcast.getMessage(req.params.id, function(message){
         if(message){
           var name = message.user.name;
-          if(ansatte[name]){
-            message.user.senioritet = ansatte[name].Seniority;
-            message.user.avdeling = ansatte[name].Department;  
-          }
-          else{
-            var ansatt = Ansattliste.fuzzySearch(name, ansatte);
-            if(ansatt){
-              message.user.senioritet = ansatt.Seniority;
-              message.user.avdeling = ansatt.Department;  
-            }
-          }
+          Ansattliste.SetPropertiesFromAnsattliste(ansatte, message, name);
         }
         res.json(message);
       });
@@ -106,29 +84,11 @@ app.post('/push', function(req, res){
 
 app.get('/stats', function(req, res){
   getAllMessages(function(messages){
-    var messageSeniorityMap = {};
-    for(var i = 0; i<messages.length; i++){
-      var seniority = messages[i].user.senioritet;
-
-      if(messageSeniorityMap[seniority]){
-        messageSeniorityMap[seniority]++;
-      }
-      else{
-        messageSeniorityMap[seniority] = 1;
-      }
-    }
-
-    var seniorityStatisticsArray = [];
-    for(var key in messageSeniorityMap){
-      var s = key;
-      var a = messageSeniorityMap[key];
-
-      seniorityStatisticsArray.push({senioritet: s, prosent: (a/messages.length*100), antall: a});
-    }
+    var messagesPerSeniority = Stats.MessagesPerSeniority(messages);
 
     res.render('stats', {
-      stats: seniorityStatisticsArray,
-      pie: Stats.VisualizeThatShit(seniorityStatisticsArray),
+      stats: messagesPerSeniority,
+      pie: Stats.VisualizeThatShit(messagesPerSeniority),
       title: "Sykt freshe stats" 
     });
   });
