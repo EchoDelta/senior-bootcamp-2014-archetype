@@ -3,6 +3,7 @@ var request = require('request');
 var async = require('async');
 var cache = require('memory-cache');
 var app = express();
+var mongo = require('mongodb').MongoClient;
 
 app.set('view engine', 'html');
 app.set('layout', 'layout');
@@ -15,8 +16,10 @@ var Ansattliste = require('./ansattliste');
 var socialcasturl = process.env.URL;
 var socialcastusername = process.env.USERNAME;
 var socialcastpassword = process.env.PASSWORD;
+var mongolaburl = process.env.MONGOLAB_URI; 
 
 var ansatte = {};
+var messageCollection;
 
 app.get('/', function(req, res){
   var newMessages = [];
@@ -86,42 +89,44 @@ app.get('/messages', function(req, res){
 
 
 app.get('/message/:id', function(req, res){
-  var cachedObject = cache.get("message"+req.params.id)
-
-  console.log(req.params.id);
-  console.log(cachedObject);
-  if(!!cachedObject){
-    res.json(cache.get("message"+req.params.id));
-  } else {
-    Socialcast.getMessage(req.params.id, function(message){
-      if(message){
-        var name = message.user.name;
-        if(ansatte[name]){
-          message.user.senioritet = ansatte[name].Seniority;
-          message.user.avdeling = ansatte[name].Department;  
-        }
-        else{
-          var ansatt = Ansattliste.fuzzySearch(name, ansatte);
-          if(ansatt){
-            message.user.senioritet = ansatt.Seniority;
-            message.user.avdeling = ansatt.Department;  
+  messageCollection.findOne({ "id": parseInt(req.params.id, 10) }, function(err, item) {
+    if(item) {
+      res.json(item);
+    } else {
+      Socialcast.getMessage(req.params.id, function(message){
+        if(message){
+          var name = message.user.name;
+          if(ansatte[name]){
+            message.user.senioritet = ansatte[name].Seniority;
+            message.user.avdeling = ansatte[name].Department;  
+          }
+          else{
+            var ansatt = Ansattliste.fuzzySearch(name, ansatte);
+            if(ansatt){
+              message.user.senioritet = ansatt.Seniority;
+              message.user.avdeling = ansatt.Department;  
+            }
           }
         }
-      }
-      res.json(message);
-    });
-  }
+        res.json(message);
+      });
+    }
+  });
 });
 
 app.post('/push', function(req, res){
   var message = req.body;
-  console.log(message.id);
-  cache.put("message"+message.id, message, 9999999999);
+  messageCollection.update({ id: message.id }, message, { upsert: true}, function(err, result) {
+    if(err){
+      console.log("Error inserting message: "+message.id);
+    } else {
+      messageCollection.findOne({ id: message.id }, function(err, item) {
+        console.log(item);
+      })
+    }
 
-  console.log(cache.size());
-  console.log(cache.get("message"+message.id));
-
-  res.send("Success", 200);
+    res.send("Success", 200);
+  });
 });
 
 app.get('/ansatt/:name', function(req, res){
@@ -140,6 +145,11 @@ app.get('/ansatt/alternative/:name', function(req, res){
   Ansattliste.fuzzySearch(req.params.name, function(data){
     res.json(data);
   });
+});
+
+mongo.connect(mongolaburl, function(error, db) {
+    if (error) throw error;
+    messageCollection = db.collection('messages');
 });
 
 Ansattliste.getAll(function(result){

@@ -21,6 +21,7 @@
     "request": "~2.30.0",
     "async": "*",
     "hogan-express": "*",
-    "memory-cache": "*"
+    "memory-cache": "*",
+    "mongodb": "~1.3"
   }
 }
