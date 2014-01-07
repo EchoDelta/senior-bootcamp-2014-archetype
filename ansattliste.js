@@ -45,7 +45,7 @@ exports.getAll = function(callback){
   });
 };
 
-exports.fuzzySearch = function(name, ansatte){
+var fuzzySearch = exports.fuzzySearch = function(name, ansatte){
   var splitName = name.split(" ");
   var match = false;
   var personen = {};
@@ -65,4 +65,18 @@ exports.fuzzySearch = function(name, ansatte){
   }
   
   return personen;
-}
+};
+
+exports.SetPropertiesFromAnsattliste = function(ansatte, message, name){
+  if(ansatte[name]){
+    message.user.senioritet = ansatte[name].Seniority;
+    message.user.avdeling = ansatte[name].Department;  
+  }
+  else{
+    var ansatt = fuzzySearch(name, ansatte);
+    if(ansatt){
+      message.user.senioritet = ansatt.Seniority;
+      message.user.avdeling = ansatt.Department;  
+    }
+  }
+};

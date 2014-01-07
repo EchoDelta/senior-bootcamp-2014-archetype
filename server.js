@@ -5,6 +5,7 @@ var cache = require('memory-cache');
 var app = express();
 var mongo = require('mongodb').MongoClient;
 
+app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'html');
 app.set('layout', 'layout');
 app.engine('html', require('hogan-express'));
@@ -13,6 +14,7 @@ app.use(express.bodyParser());
 var Socialcast = require('./socialcast');
 var Ansattliste = require('./ansattliste');
 var CarService = require('./car');
+var Stats = require('./stats');
 
 var socialcasturl = process.env.URL;
 var socialcastusername = process.env.USERNAME;
@@ -23,69 +25,30 @@ var ansatte = {};
 var messageCollection;
 var carCollection;
 
-app.get('/', function(req, res){
-  var newMessages = [];
+var getAllMessages = function(callback){
   Socialcast.getMessages(function(messages) {
     async.each(messages, function(message, done) {
       var name = message.user.name;
-      Ansattliste.getByName(name, function (ansatt) {
-        if(ansatt){
-          message.user.senioritet = ansatt.Seniority;
-          message.user.avdeling = ansatt.Department;
-          done();
-        } else {
-          var ansattid = Ansattliste.fuzzySearch(name, ansatte);
-          if(ansattid != -1) {
-            Ansattliste.getById(ansattid, function(ansatt) {
-              if(ansatt.length>0){
-                message.user.senioritet = ansatt[0].Seniority;
-                message.user.avdeling = ansatt[0].Department;
-              }
-              done();
-            });              
-          }
-          else {
-            done();
-          }
-        }
-      });
-    }, function(error) {
-      if(error){
-        console.log("Oops");
-      }
-      //res.json(messages);
-      res.render('index', { 
-        messages: messages,
-        title: "Flodes hjemmeside - 1994" })
-    });
-  });
-});
-
-app.get('/messages', function(req, res){
-  var newMessages = [];
-  Socialcast.getMessages(function(messages) {
-    async.each(messages, function(message, done) {
-      var name = message.user.name;
-
-      if(ansatte[name]){
-        message.user.senioritet = ansatte[name].Seniority;
-        message.user.avdeling = ansatte[name].Department;  
-      }
-      else{
-        var ansatt = Ansattliste.fuzzySearch(name, ansatte);
-        if(ansatt){
-          message.user.senioritet = ansatt.Seniority;
-          message.user.avdeling = ansatt.Department;  
-        }
-      }
-
+      Ansattliste.SetPropertiesFromAnsattliste(ansatte, message, name);
       done();
     }, function(error) {
       if(error){
         console.log("Oops");
       }
-      res.json(messages);
+      callback(messages);
     });
+  });
+}
+
+app.get('/', function(req, res){
+  getAllMessages(function(messages){
+    res.render('index', { messages: messages, title: "Flodes hjemmeside - 1994" });
+  });
+});
+
+app.get('/messages', function(req, res){
+  getAllMessages(function(messages){
+    res.json(messages);
   });
 });
 
@@ -98,17 +61,7 @@ app.get('/message/:id', function(req, res){
       Socialcast.getMessage(req.params.id, function(message){
         if(message){
           var name = message.user.name;
-          if(ansatte[name]){
-            message.user.senioritet = ansatte[name].Seniority;
-            message.user.avdeling = ansatte[name].Department;  
-          }
-          else{
-            var ansatt = Ansattliste.fuzzySearch(name, ansatte);
-            if(ansatt){
-              message.user.senioritet = ansatt.Seniority;
-              message.user.avdeling = ansatt.Department;  
-            }
-          }
+          Ansattliste.SetPropertiesFromAnsattliste(ansatte, message, name);
         }
         res.json(message);
       });
@@ -142,6 +95,18 @@ app.post('/push', function(req, res){
   });
 });
 
+app.get('/stats', function(req, res){
+  getAllMessages(function(messages){
+    var messagesPerSeniority = Stats.MessagesPerSeniority(messages);
+
+    res.render('stats', {
+      stats: messagesPerSeniority,
+      pie: Stats.VisualizeThatShit(messagesPerSeniority),
+      title: "Sykt freshe stats" 
+    });
+  });
+});
+
 app.get('/ansatt/:name', function(req, res){
   Ansattliste.getByName(req.params.name, function(data){
     res.json(data);
@@ -160,12 +125,16 @@ app.get('/ansatt/alternative/:name', function(req, res){
   });
 });
 
+
+//Sette opp databasen
 mongo.connect(mongolaburl, function(error, db) {
     if (error) throw error;
     messageCollection = db.collection('messages');
     carCollection = db.collection('cars');
 });
 
+
+//Hente ut alle ansatte og cache
 Ansattliste.getAll(function(result){
   var employees = {};
   async.each(result, function(employee, done){
