@@ -64,3 +64,11 @@ exports.getMessage = function(id, callback){
 		});
 	});
 }
+
+exports.getPercentage = function() {
+	return [{ senioritet: "manager", prosentandel: 69 },
+			{ senioritet: "senior", prosentandel: 13 },
+			{ senioritet: "konsulent", prosentandel: 8 },
+			{ senioritet: "trainee", prosentandel: 10}];
+}
+

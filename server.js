@@ -4,6 +4,7 @@ var async = require('async');
 var cache = require('memory-cache');
 var app = express();
 var mongo = require('mongodb').MongoClient;
+var quiche = require('quiche');
 
 app.set('view engine', 'html');
 app.set('layout', 'layout');
@@ -54,7 +55,8 @@ app.get('/', function(req, res){
       //res.json(messages);
       res.render('index', { 
         messages: messages,
-        title: "Flodes hjemmeside - 1994" })
+        title: "Flodes hjemmeside - 1994" 
+      });
     });
   });
 });
@@ -144,6 +146,25 @@ app.get('/ansatt/id/:id', function(req, res){
 app.get('/ansatt/alternative/:name', function(req, res){
   Ansattliste.fuzzySearch(req.params.name, function(data){
     res.json(data);
+  });
+});
+
+app.get('/stats', function(req, res) {
+  var pie = new quiche('pie');
+  var stats = Socialcast.getPercentage();
+  var colors = ["F229BD", "7A29F2", "139C5C", "EBD913"];
+
+  for(var i = 0; i < stats.length; i++ ){
+    pie.addData(stats[i].prosentandel, stats[i].senioritet, colors[i]);
+  }
+  pie.setTransparentBackground();
+  pie.setWidth(600);
+  pie.setHeight(400);
+  
+  res.render('stats', {
+    stats: stats,
+    pie: pie.getUrl(true),
+    title: "Sykt freshe stats"
   });
 });
 
