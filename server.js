@@ -47,7 +47,9 @@ app.get('/', function(req, res){
         console.log("Oops");
       }
       //res.json(messages);
-      res.render('index', { messages: messages })
+      res.render('index', { 
+        messages: messages,
+        title: "Flodes hjemmeside - 1994" })
     });
   });
 });
