@@ -12,6 +12,7 @@ app.use(express.bodyParser());
 
 var Socialcast = require('./socialcast');
 var Ansattliste = require('./ansattliste');
+var CarService = require('./car');
 
 var socialcasturl = process.env.URL;
 var socialcastusername = process.env.USERNAME;
@@ -112,6 +113,11 @@ app.get('/message/:id', function(req, res){
       });
     }
   });
+});
+
+app.get('/cars', function(req, res){
+  var cars = CarService.getAllCarNumbers(ansatte);
+  res.json(cars);
 });
 
 app.post('/push', function(req, res){
