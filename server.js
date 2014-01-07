@@ -1,11 +1,13 @@
 var express = require('express');
 var request = require('request');
 var async = require('async');
+var cache = require('memory-cache');
 var app = express();
 
 app.set('view engine', 'html');
 app.set('layout', 'layout');
 app.engine('html', require('hogan-express'));
+app.use(express.bodyParser());
 
 var Socialcast = require('./socialcast');
 var Ansattliste = require('./ansattliste');
@@ -84,23 +86,42 @@ app.get('/messages', function(req, res){
 
 
 app.get('/message/:id', function(req, res){
-  Socialcast.getMessage(req.params.id, function(message){
-    if(message){
-      var name = message.user.name;
-      if(ansatte[name]){
-        message.user.senioritet = ansatte[name].Seniority;
-        message.user.avdeling = ansatte[name].Department;  
-      }
-      else{
-        var ansatt = Ansattliste.fuzzySearch(name, ansatte);
-        if(ansatt){
-          message.user.senioritet = ansatt.Seniority;
-          message.user.avdeling = ansatt.Department;  
+  var cachedObject = cache.get("message"+req.params.id)
+
+  console.log(req.params.id);
+  console.log(cachedObject);
+  if(!!cachedObject){
+    res.json(cache.get("message"+req.params.id));
+  } else {
+    Socialcast.getMessage(req.params.id, function(message){
+      if(message){
+        var name = message.user.name;
+        if(ansatte[name]){
+          message.user.senioritet = ansatte[name].Seniority;
+          message.user.avdeling = ansatte[name].Department;  
+        }
+        else{
+          var ansatt = Ansattliste.fuzzySearch(name, ansatte);
+          if(ansatt){
+            message.user.senioritet = ansatt.Seniority;
+            message.user.avdeling = ansatt.Department;  
+          }
         }
       }
-    }
-    res.json(message);
-  });
+      res.json(message);
+    });
+  }
+});
+
+app.post('/push', function(req, res){
+  var message = req.body;
+  console.log(message.id);
+  cache.put("message"+message.id, message, 9999999999);
+
+  console.log(cache.size());
+  console.log(cache.get("message"+message.id));
+
+  res.send("Success", 200);
 });
 
 app.get('/ansatt/:name', function(req, res){
